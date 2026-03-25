@@ -23,11 +23,17 @@
 ---
 
 ## The Fixes I Applied
+* Fixed nginx routing by updating `proxy_pass` to point to the correct API port (`http://api:3000`).
 
-* Corrected nginx routing by updating `proxy_pass` to point to `http://api:3000`.
-* Add curl package to healthcheck for api app in Dockerfile:
-  ```
-     RUN apk add --no-cache curl
+* Added health check endpoints:
+
+  * `/status` now verifies both PostgreSQL (`SELECT 1`) and Redis (`PING`)
+  * Ensures real dependency readiness instead of a simple static response
+
+* Added `curl` to the API container to support health checks in Docker:
+
+  ```dockerfile
+  RUN apk add --no-cache curl
   ```
 
 * Mounted the PostgreSQL initialization script:
@@ -45,7 +51,15 @@
     condition: service_healthy
   ```
 
-* Implemented retry logic with exponential backoff in the API for database and Redis connections.
+* Updated the API to use environment variables for database configuration instead of hardcoded values:
+
+  * `DB_USER`
+  * `DB_PASSWORD`
+  * `DB_NAME`
+
+* Improved database connection handling:
+  * Moved `pool.connect()` outside the `try` block
+  * Ensured `db.release()` is always executed using `finally` to prevent connection leaks
 
 * Moved sensitive configuration (DB credentials, connection strings) to environment variables and a `.env` file.
 
