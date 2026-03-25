@@ -3,26 +3,111 @@ version: "3.9"
 services:
   nginx:
     image: nginx:1.25
+
     ports:
       - "8080:80"
+
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
+
+    # wait for API to be actually healthy
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   api:
     build: ./api
+
     environment:
-      - DB_HOST=postgres
-      - REDIS_HOST=redis
+      DB_HOST: postgres
+      DB_USER: app_user
+      DB_PASSWORD: strong_password
+      DB_NAME: app_db
+      REDIS_HOST: redis
+
+    # ensure dependencies are ready
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    # healthcheck must match your app (/health on port 3000)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   postgres:
     image: postgres:15
+
     environment:
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: app_db
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: strong_password
+
+    # persist data + init script
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    # ensure DB is ready
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d app_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    restart: unless-stopped
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   redis:
     image: redis:7
+
+    # enable persistence
+    command: ["redis-server", "--appendonly", "yes"]
+
+    volumes:
+      - redis_data:/data
+
+    # ensure Redis is ready
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+    restart: unless-stopped
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# persistent volumes
+volumes:
+  postgres_data:
+  redis_data:
