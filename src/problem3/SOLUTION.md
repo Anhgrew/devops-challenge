@@ -168,7 +168,3 @@ systemctl restart systemd-journald
 | 5%         | Deleted file handles or core dumps |
 
 ---
-
-## Key takeaway
-
-When an NGINX load balancer fills its disk, the issue is almost always related to log management rather than system resource usage.
