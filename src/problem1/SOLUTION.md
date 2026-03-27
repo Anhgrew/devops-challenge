@@ -1,2 +1,6 @@
-Provide your CLI command here:
+## Provide your CLI command here
+
+```bash
 set -o pipefail; jq -r 'select(.symbol=="TSLA" and .side=="sell" and .order_id!=null) | .order_id' ./transaction-log.txt | sort -u | xargs -r -P 4 -I {} sh -c 'curl --fail --silent --show-error --retry 3 --retry-delay 2 --retry-connrefused --connect-timeout 5 --max-time 10 "https://example.com/get?order_id={}" || echo "ERROR order_id={}" >&2' > >(tee ./output.txt) 2> >(tee ./error.txt >&2)
+```
+
