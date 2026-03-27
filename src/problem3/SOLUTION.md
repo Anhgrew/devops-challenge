@@ -157,14 +157,3 @@ systemctl restart systemd-journald
 * Prefer forwarding logs to a centralized logging system instead of storing locally
 
 ---
-
-## Most probable findings
-
-| Likelihood | Cause                              |
-| ---------- | ---------------------------------- |
-| 70%        | NGINX logs not rotating            |
-| 15%        | Debug or `$request_body` logging   |
-| 10%        | Journald growth                    |
-| 5%         | Deleted file handles or core dumps |
-
----
